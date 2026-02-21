@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>에고그램에 의한 자기진단</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #3b82f6;
+            --primary-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            --secondary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            --success-gradient: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #93c5fd 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #1f2937;
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            overflow-x: hidden;
+            word-wrap: break-word;
+            word-break: keep-all;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 4rem);
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .page.active > .card,
+        .page.active > .page-center {
+            width: 100%;
+        }
+
+        .page-center {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .page-center .actions {
+            position: static;
+            background: transparent;
+            backdrop-filter: none;
+            padding: 0;
+            box-shadow: none;
+            border-radius: 0;
+            justify-content: center;
+            margin-top: clamp(2.5rem, 5vw, 3.5rem);
+            gap: 1.25rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+            padding: clamp(2rem, 5vw, 3.5rem);
+            padding-bottom: clamp(2.5rem, 6vw, 4rem);
+            box-shadow: var(--shadow-xl);
+            margin-bottom: 2rem;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: clamp(32px, 6vw, 48px);
+            font-weight: 900;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .header .subtitle {
+            font-size: clamp(16px, 3vw, 20px);
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .section-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: .35rem .9rem;
+            border-radius: 999px;
+            font-size: clamp(11px, 1.8vw, 13px);
+            font-weight: 700;
+            color: var(--primary);
+            background: rgba(37, 99, 235, 0.1);
+            margin-bottom: .75rem;
+        }
+
+        .section-title {
+            font-size: clamp(22px, 4.5vw, 32px);
+            font-weight: 900;
+            color: var(--primary-dark);
+            margin-bottom: .4rem;
+        }
+
+        .section-sub {
+            font-size: clamp(13px, 2.4vw, 16px);
+            color: #64748b;
+            margin-bottom: 1rem;
+        }
+
+        .divider {
+            width: clamp(70px, 14vw, 120px);
+            height: 3px;
+            margin: 1rem auto 0;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(37, 99, 235, 0.25), rgba(59, 130, 246, 0.4));
+        }
+
+        .form-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            height: 48px;
+            border: 2px solid #e5e7eb;
+            border-radius: .75rem;
+            padding: 0 1rem;
+            font-size: 16px;
+            background: #fff;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: right .75rem center;
+            background-size: 1.25em;
+        }
+
+        .radio-group {
+            width: 100%;
+            height: 48px;
+            border: 2px solid #e5e7eb;
+            border-radius: .75rem;
+            padding: 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            background: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .radio-group:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .radio-lbl { display: flex; align-items: center; gap: .4rem; cursor: pointer; }
+        .radio-lbl input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+        .radio-lbl span { font-size: clamp(14px, 2.2vw, 16px); color: #334155; }
+
+        .consent-wrap {
+            border: 2px solid #e5e7eb;
+            border-radius: .75rem;
+            padding: 1.25rem;
+            background: #fff;
+        }
+
+        .consent-lbl {
+            display: flex;
+            gap: .6rem;
+            align-items: center;
+            cursor: pointer;
+            font-size: clamp(13px, 2vw, 15px);
+            color: #475569;
+        }
+
+        .consent-lbl input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .intro-section {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(29, 78, 216, 0.1));
+            border-radius: 1.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 2px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .intro-section h2 {
+            font-size: clamp(20px, 4vw, 24px);
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .intro-section p {
+            font-size: clamp(14px, 2.5vw, 16px);
+            color: #475569;
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        .scoring-guide {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .score-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .score-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary);
+        }
+
+        .score-item .score-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .score-item .score-label {
+            font-size: clamp(11px, 1.5vw, 14px);
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .question-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .question-item {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .question-item:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        .question-item.answered {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(37, 99, 235, 0.02));
+        }
+
+        .question-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .question-number {
+            background: var(--primary-gradient);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .question-text {
+            font-size: clamp(16px, 3vw, 18px);
+            font-weight: 600;
+            color: #1f2937;
+            line-height: 1.7;
+            flex: 1;
+        }
+
+        .answer-options {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .answer-option {
+            padding: 0.875rem 0.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.875rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .answer-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .answer-option:hover::before { left: 100%; }
+
+        .answer-option:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+            border-color: var(--primary);
+        }
+
+        .answer-option.selected {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: var(--primary);
+            transform: scale(1.05);
+            box-shadow: var(--shadow-md);
+        }
+
+        .answer-option .option-score {
+            font-size: clamp(16px, 4vw, 20px);
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+        }
+
+        .answer-option .option-label {
+            font-size: clamp(10px, 2.2vw, 13px);
+            font-weight: 600;
+            opacity: 0.9;
+            line-height: 1.2;
+        }
+
+        .progress-bar {
+            position: sticky;
+            top: 1rem;
+            z-index: 100;
+            background: white;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-text {
+            font-weight: 700;
+            color: #1f2937;
+            font-size: clamp(14px, 2.5vw, 16px);
+        }
+
+        .progress-percentage {
+            font-weight: 800;
+            color: var(--primary);
+            font-size: clamp(16px, 3vw, 20px);
+        }
+
+        .progress-bar-fill {
+            height: 12px;
+            background: #e5e7eb;
+            border-radius: 999px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: var(--progress, 0%);
+            background: var(--primary-gradient);
+            border-radius: 999px;
+            transition: width 0.5s ease;
+        }
+
+        .btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 1rem;
+            padding: 1rem 2rem;
+            font-size: clamp(16px, 3vw, 18px);
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover { background: #d1d5db; }
+
+        .actions {
+            display: flex;
+            gap: 1.25rem;
+            justify-content: center;
+            margin-top: clamp(2.5rem, 5vw, 3.5rem);
+            flex-wrap: wrap;
+        }
+
+        .actions-sticky {
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-top: clamp(2.5rem, 5vw, 3.5rem);
+            flex-wrap: wrap;
+            position: sticky;
+            bottom: 1rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .actions-sticky .btn-secondary { margin-right: auto; }
+        .actions-sticky .btn:not(.btn-secondary) { margin-left: auto; }
+
+        #introSection {
+            max-width: 900px !important;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .intro-section {
+            text-align: center;
+        }
+
+        .intro-section h2 {
+            text-align: center;
+            justify-content: center;
+        }
+
+        .intro-section p {
+            text-align: center;
+        }
+
+        .result-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .result-title {
+            font-size: clamp(30px, 5.2vw, 38px);
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.03em;
+        }
+
+        .result-title::after {
+            content: "";
+            display: block;
+            width: 72px;
+            height: 4px;
+            border-radius: 999px;
+            margin: 0.5rem auto 0;
+            background: linear-gradient(90deg, #60a5fa, #2563eb);
+        }
+
+        .score-summary {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .score-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 1rem;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .score-card.highest {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.03));
+            box-shadow: var(--shadow-md);
+        }
+
+        .score-card .axis-name {
+            font-size: clamp(12px, 2vw, 14px);
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 0.5rem;
+        }
+
+        .score-card .axis-score {
+            font-size: clamp(24px, 4vw, 32px);
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        /* 에고그램 차트 */
+        .egogram-chart-container {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .egogram-chart-title {
+            font-size: clamp(20px, 4vw, 24px);
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .egogram-chart {
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .egogram-svg {
+            width: 100%;
+            height: auto;
+        }
+
+        /* 유형 뱃지 */
+        .type-badges {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 0.75rem 2rem;
+            border-radius: 999px;
+            font-size: clamp(18px, 3.5vw, 24px);
+            font-weight: 800;
+            margin: 0.5rem;
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .type-badge.cp { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+        .type-badge.np { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .type-badge.a-type { background: linear-gradient(135deg, #10b981, #059669); }
+        .type-badge.fc { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .type-badge.ac { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        /* 유형 상세 */
+        .type-detail-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .type-detail-title {
+            font-size: clamp(28px, 5vw, 38px);
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .type-detail-subtitle {
+            font-size: clamp(15px, 2.5vw, 18px);
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .type-selector-wrapper {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .type-select-btn {
+            padding: 0.75rem 0.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.875rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-weight: 700;
+            font-size: clamp(13px, 2vw, 16px);
+            color: #475569;
+        }
+
+        .type-select-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .type-select-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        .type-select-btn.active .my-result-tag {
+            background: rgba(255,255,255,0.3);
+            color: white;
+        }
+
+        .type-select-btn.active .btn-score {
+            color: rgba(255,255,255,0.85);
+        }
+
+        .type-select-btn.my-result {
+            border-width: 2.5px;
+        }
+
+        .my-result-tag {
+            display: block;
+            font-size: clamp(9px, 1.5vw, 11px);
+            font-weight: 800;
+            color: #fff;
+            background: var(--primary);
+            padding: 0.1rem 0.4rem;
+            border-radius: 999px;
+            margin: 0 auto 0.25rem;
+            width: fit-content;
+            letter-spacing: 0.02em;
+        }
+
+        .btn-score {
+            display: block;
+            font-size: clamp(10px, 1.5vw, 12px);
+            font-weight: 600;
+            opacity: 0.7;
+            margin-top: 0.2rem;
+        }
+
+        .my-result-badge {
+            display: inline-block;
+            background: var(--primary-gradient);
+            color: white;
+            font-size: clamp(13px, 2.2vw, 15px);
+            font-weight: 700;
+            padding: 0.5rem 1.25rem;
+            border-radius: 999px;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .type-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .type-detail-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            text-align: left;
+        }
+
+        .type-detail-card h3 {
+            font-size: clamp(18px, 3.5vw, 22px);
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid rgba(37, 99, 235, 0.15);
+        }
+
+        .type-detail-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .type-detail-card li {
+            padding: 0.5rem 0;
+            color: #475569;
+            font-size: clamp(14px, 2.5vw, 16px);
+            line-height: 1.6;
+            padding-left: 2rem;
+            position: relative;
+        }
+
+        .type-detail-card li::before {
+            content: "•";
+            position: absolute;
+            left: 0.5rem;
+            top: 0.625rem;
+            color: var(--primary);
+            font-weight: 800;
+        }
+
+        /* 전략 입력 */
+        .strategy-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .strategy-item {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .strategy-item:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .strategy-number {
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: clamp(16px, 3vw, 18px);
+        }
+
+        .strategy-input {
+            width: 100%;
+            border: none;
+            border-bottom: 2px solid #e5e7eb;
+            padding: 0.5rem 0;
+            font-size: 16px;
+            color: #1f2937;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+            background: transparent;
+        }
+
+        .strategy-input:focus {
+            outline: none;
+            border-bottom-color: var(--primary);
+        }
+
+        .strategy-input::placeholder { color: #9ca3af; }
+
+        .strategy-remove {
+            margin-top: 0.5rem;
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+        }
+
+        .strategy-remove:hover { background: rgba(239, 68, 68, 0.1); }
+
+        .info-block {
+            margin-top: clamp(1.5rem, 4vw, 2.5rem);
+            padding: clamp(1.2rem, 3.5vw, 2rem);
+            border-radius: 1.25rem;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(29, 78, 216, 0.12));
+            border: 1px solid rgba(37, 99, 235, 0.18);
+            display: grid;
+            gap: clamp(.85rem, 2.2vw, 1.4rem);
+        }
+
+        .info-title {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            font-size: clamp(15px, 2.8vw, 19px);
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: .75rem;
+            font-size: clamp(14px, 2.5vw, 17px);
+            color: #1f2937;
+            line-height: 1.6;
+        }
+
+        .info-item strong {
+            font-weight: 700;
+            color: var(--primary);
+            min-width: 1.5em;
+        }
+
+        /* 완료 페이지 */
+        .completion-icon {
+            font-size: 80px;
+            margin-bottom: 1rem;
+        }
+
+        .completion-message {
+            font-size: clamp(18px, 3vw, 22px);
+            color: #475569;
+            line-height: 1.8;
+        }
+
+        /* 반응형: 768px */
+        @media (max-width: 768px) {
+            body { padding: 1rem 0.5rem; }
+            .container { max-width: 100%; }
+            .page-center { max-width: 100%; }
+
+            .page.active { min-height: calc(100vh - 2rem); }
+
+            .page-center .actions { justify-content: center; margin-top: clamp(2rem, 4vw, 3rem); }
+
+            .card { padding: 1.5rem; border-radius: 1.5rem; margin-bottom: 1.5rem; }
+            .header { margin-bottom: 1.5rem; }
+
+            .scoring-guide { gap: 0.375rem; }
+            .score-item { padding: 0.75rem 0.25rem; }
+
+            .answer-options { gap: 0.375rem; }
+            .answer-option { padding: 0.75rem 0.25rem; }
+            .answer-option .option-score { font-size: clamp(14px, 3.5vw, 18px); }
+            .answer-option .option-label { font-size: clamp(9px, 2.2vw, 12px); }
+
+            .score-summary { gap: 0.375rem; }
+            .score-card { padding: 0.75rem 0.5rem; }
+            .score-card .axis-name { font-size: clamp(10px, 2.2vw, 13px); }
+            .score-card .axis-score { font-size: clamp(16px, 3.5vw, 22px); }
+
+            .type-selector-wrapper { gap: 0.25rem; }
+            .type-select-btn { padding: 0.5rem 0.25rem; font-size: clamp(11px, 2vw, 14px); }
+            .my-result-tag { font-size: 9px; padding: 0.05rem 0.3rem; }
+            .btn-score { font-size: 10px; }
+
+            .type-detail-grid { grid-template-columns: 1fr; }
+            .type-detail-card li { font-size: clamp(13px, 2.5vw, 15px); }
+
+            .actions-sticky {
+                padding: 0.8rem 1rem;
+                margin-left: -1.5rem;
+                margin-right: -1.5rem;
+                margin-bottom: -1.5rem;
+                border-radius: 0 0 1.5rem 1.5rem;
+                gap: 0.75rem;
+            }
+
+            .actions-sticky .btn {
+                flex: 0 1 auto;
+                min-width: 100px;
+                padding: 0.8rem 1.2rem;
+                font-size: clamp(13px, 2.5vw, 15px);
+            }
+
+            .progress-bar { padding: 0.75rem; margin-bottom: 1rem; }
+            .question-number { width: 2rem; height: 2rem; font-size: 14px; }
+            .egogram-chart-container { padding: 1rem; }
+
+            .result-title { font-size: clamp(22px, 5vw, 30px); }
+            .my-result-badge { font-size: clamp(12px, 2vw, 14px); padding: 0.4rem 1rem; }
+
+            .info-block { padding: 1rem; }
+            .info-title { font-size: clamp(14px, 2.5vw, 17px); }
+            .info-item { font-size: clamp(13px, 2.2vw, 15px); }
+
+            .completion-icon { font-size: 60px; }
+            .completion-message { font-size: clamp(14px, 2.5vw, 18px); }
+
+            .strategy-item { padding: 1rem; }
+            .strategy-number { font-size: clamp(14px, 2.5vw, 16px); }
+
+            .intro-section { padding: 1.5rem; }
+            .intro-section h2 { font-size: clamp(18px, 4vw, 22px); }
+            .intro-section p { font-size: clamp(13px, 2.3vw, 15px); }
+
+            .form-grid { gap: 1rem; }
+            .consent-wrap { padding: 1rem; }
+
+            .btn { padding: 0.8rem 1.5rem; font-size: clamp(14px, 2.5vw, 16px); }
+        }
+
+        /* 반응형: 480px */
+        @media (max-width: 480px) {
+            body { padding: 0.75rem 0.4rem; }
+
+            .page.active { min-height: calc(100vh - 1.5rem); }
+
+            .card { padding: 1.2rem; border-radius: 1.2rem; margin-bottom: 1rem; }
+            .header { margin-bottom: 1.2rem; }
+            .header h1 { font-size: clamp(22px, 6vw, 30px); margin-bottom: 0.4rem; }
+            .header .subtitle { font-size: clamp(13px, 2.5vw, 15px); }
+
+            .scoring-guide { gap: 0.25rem; }
+            .score-item .score-value { font-size: 18px; }
+            .score-item .score-label { font-size: 10px; }
+            .score-item { padding: 0.6rem 0.2rem; }
+
+            .answer-option { padding: 0.6rem 0.2rem; }
+            .answer-option .option-score { font-size: clamp(13px, 3vw, 16px); }
+            .answer-option .option-label { font-size: clamp(8px, 2vw, 11px); }
+
+            .question-item { padding: 1rem; }
+            .question-number { width: 1.75rem; height: 1.75rem; font-size: 13px; border-radius: 8px; }
+            .question-text { font-size: clamp(14px, 3vw, 16px); }
+            .question-header { gap: 0.7rem; margin-bottom: 0.7rem; }
+
+            .score-card { padding: 0.6rem 0.3rem; }
+            .score-card .axis-name { font-size: clamp(9px, 2vw, 12px); }
+            .score-card .axis-score { font-size: clamp(14px, 3vw, 20px); }
+
+            .type-select-btn { padding: 0.4rem 0.15rem; font-size: clamp(10px, 1.8vw, 13px); }
+            .my-result-tag { font-size: 8px; padding: 0.05rem 0.25rem; margin-bottom: 0.15rem; }
+            .btn-score { font-size: 9px; }
+
+            .type-detail-title { font-size: clamp(22px, 5vw, 30px); }
+            .type-detail-subtitle { font-size: clamp(12px, 2.3vw, 15px); }
+            .type-detail-card { padding: 1rem; }
+            .type-detail-card h3 { font-size: clamp(16px, 3vw, 19px); }
+            .type-detail-card li { font-size: clamp(12px, 2.3vw, 14px); padding-left: 1.5rem; }
+
+            .actions-sticky {
+                margin-left: -1.2rem;
+                margin-right: -1.2rem;
+                margin-bottom: -1.2rem;
+                border-radius: 0 0 1.2rem 1.2rem;
+                padding: 0.7rem 0.8rem;
+            }
+
+            .actions-sticky .btn {
+                min-width: 90px;
+                padding: 0.7rem 1rem;
+                font-size: 13px;
+                border-radius: 0.75rem;
+            }
+
+            .result-title { font-size: clamp(20px, 5vw, 26px); }
+            .result-title::after { width: 50px; height: 3px; }
+
+            .strategy-item { padding: 0.8rem; margin-bottom: 0.7rem; }
+            .strategy-number { font-size: 14px; }
+            .strategy-input { font-size: 15px; }
+
+            .intro-section { padding: 1.2rem; margin-bottom: 1.2rem; }
+            .info-block { padding: 0.8rem; gap: 0.6rem; }
+            .info-title { font-size: clamp(13px, 2.5vw, 16px); }
+            .info-item { font-size: clamp(12px, 2.2vw, 14px); gap: 0.5rem; }
+
+            .completion-icon { font-size: 50px; }
+
+            .radio-group { height: 44px; }
+            .form-select { height: 44px; font-size: 15px; }
+            .consent-wrap { padding: 0.8rem; }
+            .consent-lbl { font-size: clamp(12px, 2.2vw, 14px); }
+
+            .progress-bar { padding: 0.6rem; border-radius: 0.75rem; }
+            .progress-bar-fill { height: 8px; }
+
+            .egogram-chart-container { padding: 0.8rem; }
+            .egogram-chart-title { font-size: clamp(16px, 3.5vw, 20px); }
+        }
+
+        /* 반응형: 360px */
+        @media (max-width: 360px) {
+            body { padding: 0.5rem 0.3rem; }
+
+            .card { padding: 1rem; border-radius: 1rem; }
+            .header h1 { font-size: 20px; }
+
+            .actions-sticky {
+                margin-left: -1rem;
+                margin-right: -1rem;
+                margin-bottom: -1rem;
+                border-radius: 0 0 1rem 1rem;
+            }
+
+            .actions-sticky .btn {
+                min-width: 80px;
+                padding: 0.6rem 0.8rem;
+                font-size: 12px;
+            }
+
+            .btn { padding: 0.7rem 1.2rem; font-size: 14px; border-radius: 0.75rem; }
+
+            .intro-section { padding: 1rem; }
+            .intro-section p { font-size: 12px; }
+            .score-item .score-value { font-size: 16px; }
+            .score-item .score-label { font-size: 9px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- 인트로 -->
+        <div id="pageIntro" class="page active">
+            <div class="page-center"><div class="card">
+                <div class="header">
+                    <h1>에고그램 자기진단</h1>
+                    <p class="subtitle">교류분석(TA)에 기반한 나의 자아상태 알아보기</p>
+                </div>
+
+                <div class="intro-section">
+                    <h2>검사 안내</h2>
+                    <p>에고그램은 교류분석(Transactional Analysis) 이론에 기반하여<br>
+                    자신의 5가지 자아상태(CP, NP, A, FC, AC)를 파악하는 검사입니다.<br>
+                    총 50문항으로 구성되어 있으며, 각 문항에 솔직하게 응답해 주세요.</p>
+
+                    <div class="scoring-guide">
+                        <div class="score-item"><div class="score-value">5</div><div class="score-label">매우 그렇다</div></div>
+                        <div class="score-item"><div class="score-value">4</div><div class="score-label">그렇다</div></div>
+                        <div class="score-item"><div class="score-value">3</div><div class="score-label">보통이다</div></div>
+                        <div class="score-item"><div class="score-value">2</div><div class="score-label">그렇지 않다</div></div>
+                        <div class="score-item"><div class="score-value">1</div><div class="score-label">전혀 그렇지 않다</div></div>
+                    </div>
+                </div>
+
+                <div class="info-block">
+                    <div class="info-title">검사 전 안내사항</div>
+                    <div class="info-item"><strong>1.</strong><span>총 <b>50문항</b>이며, 소요시간은 약 <b>10~15분</b>입니다.</span></div>
+                    <div class="info-item"><strong>2.</strong><span>정답은 없으므로 <b>솔직하게</b> 응답해 주세요.</span></div>
+                    <div class="info-item"><strong>3.</strong><span>출처: <b>한국교류분석협회</b></span></div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn" onclick="goTo('pageUserInfo')">검사 시작하기 →</button>
+                </div>
+            </div></div>
+        </div>
+
+        <!-- 사용자 정보 -->
+        <div id="pageUserInfo" class="page">
+            <div class="page-center"><div class="card">
+                <div style="text-align:center; margin-bottom:1.5rem;">
+                    <div class="section-tag">STEP 1</div>
+                    <div class="section-title">기본 정보 입력</div>
+                    <div class="section-sub">검사 시작 전 기본 정보를 입력해 주세요.</div>
+                    <div class="divider"></div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="radio-group">
+                        <label class="radio-lbl"><input type="radio" name="u-gender" value="남"><span>남</span></label>
+                        <label class="radio-lbl"><input type="radio" name="u-gender" value="여"><span>여</span></label>
+                    </div>
+                    <select id="u-age" class="form-select">
+                        <option value="">연령대를 선택하세요</option>
+                        <option value="10대">10대</option>
+                        <option value="20대">20대</option>
+                        <option value="30대">30대</option>
+                        <option value="40대">40대</option>
+                        <option value="50대">50대</option>
+                        <option value="60대 이상">60대 이상</option>
+                    </select>
+                    <div class="consent-wrap">
+                        <label class="consent-lbl">
+                            <input type="checkbox" id="u-consent">
+                            개인정보 수집 및 이용에 동의합니다
+                        </label>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-secondary" onclick="goTo('pageIntro')">← 이전</button>
+                    <button class="btn" onclick="startTest()">검사 시작 →</button>
+                </div>
+            </div></div>
+        </div>
+
+        <!-- 검사 -->
+        <div id="pageTest" class="page">
+            <div class="card">
+                <div class="header">
+                    <h1>에고그램 자기진단</h1>
+                    <p class="subtitle">각 문항을 읽고 자신에게 해당하는 정도를 선택하세요</p>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-info">
+                        <span class="progress-text">진행률</span>
+                        <span class="progress-percentage" id="progressPercentage">0%</span>
+                    </div>
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+
+                <div class="question-list" id="questionList"></div>
+
+                <div class="actions-sticky">
+                    <button class="btn btn-secondary" onclick="goTo('pageUserInfo')">← 이전</button>
+                    <button class="btn" id="resultBtn" onclick="showResults()" disabled>결과 보기 →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 1: 점수 + 에고그램 -->
+        <div id="pageResult1" class="page">
+            <div class="card">
+                <div class="result-header">
+                    <div class="result-title">나의 에고그램 결과</div>
+                </div>
+
+                <div class="type-badges" id="typeBadges"></div>
+                <div class="score-summary" id="scoreSummary"></div>
+
+                <div class="egogram-chart-container">
+                    <div class="egogram-chart-title">나의 에고그램</div>
+                    <div class="egogram-chart" id="egogramChart"></div>
+                </div>
+
+                <div class="actions-sticky">
+                    <button class="btn btn-secondary" onclick="goTo('pageTest')">← 검사로 돌아가기</button>
+                    <button class="btn" onclick="goTo('pageResult2')">유형 상세 보기 →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 2: 유형 상세 -->
+        <div id="pageResult2" class="page">
+            <div class="card">
+                <div class="result-header">
+                    <div class="result-title">자아상태 상세 설명</div>
+                </div>
+
+                <div class="type-selector-wrapper" id="typeSelector"></div>
+                <div class="type-detail-section" id="typeDetailHeader"></div>
+                <div class="type-detail-grid" id="typeDetailContent"></div>
+
+                <div class="actions-sticky">
+                    <button class="btn btn-secondary" onclick="goTo('pageResult1')">← 이전</button>
+                    <button class="btn" onclick="goTo('pageResult3')">실천 전략 →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 3: 실천 전략 -->
+        <div id="pageResult3" class="page">
+            <div class="card">
+                <div class="result-header">
+                    <div class="result-title">나의 실천 전략</div>
+                    <p style="color: #64748b; margin-top: 0.5rem; font-size: clamp(14px, 2.5vw, 16px);">
+                        검사 결과를 바탕으로 실천할 전략을 작성해 보세요
+                    </p>
+                </div>
+
+                <div class="strategy-container">
+                    <div id="strategyList"></div>
+                    <button class="btn btn-secondary" onclick="addStrategy()" style="margin-top: 1rem; width: 100%; justify-content: center;">
+                        + 전략 추가하기
+                    </button>
+                </div>
+
+                <div class="actions-sticky">
+                    <button class="btn btn-secondary" onclick="goTo('pageResult2')">← 이전</button>
+                    <button class="btn" onclick="submitResults()">제출하기 →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 4: 완료 -->
+        <div id="pageResult4" class="page">
+            <div class="page-center"><div class="card" style="text-align: center;">
+                <div class="completion-icon">🎉</div>
+                <div class="result-title">수고하셨습니다!</div>
+                <div class="completion-message">
+                    에고그램 자기진단 검사를 완료해 주셔서 감사합니다.<br>
+                    결과를 참고하여 자기 이해의 폭을 넓혀 보세요.
+                </div>
+
+                <div class="info-block" style="margin-top:2rem; text-align:left;">
+                    <div class="info-title">검사 관련 추가 정보</div>
+                    <div class="info-item"><strong>1.</strong><span>유튜브 <b>'이재경교수TV'</b>, 길벗심리상담연구소 홈페이지에서 더 많은 자료를 확인해 보세요.</span></div>
+                    <div class="info-item"><strong>2.</strong><span>교육(강의) 및 심리 상담 문의: <b style="color:var(--primary-dark);">ljg4129@naver.com</b></span></div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-secondary" onclick="goTo('pageResult3')">← 이전</button>
+                    <button class="btn" onclick="resetTest()">처음으로 돌아가기</button>
+                </div>
+            </div></div>
+        </div>
+
+    </div>
+
+    <script>
+        // 질문 데이터 (50문항)
+        const questions = [
+            { id: 1, text: "다른 사람을 헐뜯기 보다는 칭찬을 잘 한다.", category: "NP" },
+            { id: 2, text: "대화에서 격언, 속담을 잘 인용한다.", category: "CP" },
+            { id: 3, text: "'법이 없어도 살아갈 수 있는 사람'이라는 소리를 잘 듣는다.", category: "NP" },
+            { id: 4, text: "행동이나 말이 자유롭고 자연스럽다.", category: "FC" },
+            { id: 5, text: "말이나 행동을 냉정하고 침착하게 하므로 안정된 분위기를 느낀다.", category: "A" },
+            { id: 6, text: "'내가 말하는 대로 된다'는 식으로 말한다.", category: "CP" },
+            { id: 7, text: "상냥하고 부드러우며 애정이 깃들어 있는 대화나 태도를 갖는다.", category: "NP" },
+            { id: 8, text: "TV, 영화 등을 보면서 마음이 약해 눈물을 잘 흘리는 편이다.", category: "FC" },
+            { id: 9, text: "육하원칙에 따라 사리를 따지거나 설명하는 편이다.", category: "A" },
+            { id: 10, text: "호기심이 강하고 기발한(창의적인) 착상을 잘한다.", category: "FC" },
+            { id: 11, text: "말을 할 때 상대방의 안색을 자주 살핀다.", category: "AC" },
+            { id: 12, text: "직장 내외에서 사회봉사 활동에 참가하기를 좋아한다.", category: "NP" },
+            { id: 13, text: "사회의 윤리, 도덕, 규칙 등을 중시하고 준수한다.", category: "CP" },
+            { id: 14, text: "다른 사람으로부터 부탁을 받으면 거절하지 못한다.", category: "AC" },
+            { id: 15, text: "자세가 바르며 여유가 있다.", category: "A" },
+            { id: 16, text: "자신을 멋대로라고 생각한다.", category: "FC" },
+            { id: 17, text: "다른 사람의 마음에 들고 싶다고 생각한다.", category: "AC" },
+            { id: 18, text: "부모나 상사가 시키는 대로 한다.", category: "AC" },
+            { id: 19, text: "타산적이며 이해득실을 생각하고 행동한다.", category: "A" },
+            { id: 20, text: "일을 능률적으로 잘 처리해 간다.", category: "A" },
+            { id: 21, text: "매사에 조심스럽고 소극적인 편이다.", category: "AC" },
+            { id: 22, text: "대화에서 감정적으로 되지 않고 이성적으로 풀어 간다.", category: "A" },
+            { id: 23, text: "상대방의 이야기를 잘 경청하고 공감하는 편이다.", category: "NP" },
+            { id: 24, text: "책임감이 강하고 약속시간을 엄수한다.", category: "CP" },
+            { id: 25, text: "부하나 아이의 실패에 대해 관대하고 격려한다.", category: "NP" },
+            { id: 26, text: "의리와 인정에 끌려서 아이나 부하, 동료 등 누군가를 마음에 걸려 한다.", category: "NP" },
+            { id: 27, text: "신이 나면 도가 지나쳐서 실수를 한다.", category: "FC" },
+            { id: 28, text: "아이나 부하를 엄격하게 다룬다.", category: "CP" },
+            { id: 29, text: "생각하고 있는 바를 입 밖으로 내지 못하는 성격이다.", category: "AC" },
+            { id: 30, text: "친구나 동료, 아이들이나 부하에게 신체적 접촉 같은 스킨십을 잘하는 편이다.", category: "NP" },
+            { id: 31, text: "상대의 말을 가로막고 자신의 생각을 말한다.", category: "CP" },
+            { id: 32, text: "밝은 유머가 있으며, 장난을 잘 치는 편이다.", category: "FC" },
+            { id: 33, text: "어떤 일이나 사실에 근거해서 판단한다.", category: "A" },
+            { id: 34, text: "상대의 실수를 지적하고 정정한다.", category: "CP" },
+            { id: 35, text: "열등감이 강한 편이고 자신의 감정을 억눌러 버리는 편이다.", category: "AC" },
+            { id: 36, text: "오락이나 술 등 음식물을 만족할 때까지 먹는다.", category: "FC" },
+            { id: 37, text: "미래의 일을 냉정하고 예리하게 예측하고 행동한다.", category: "A" },
+            { id: 38, text: "욕심나는 것을 가지지 않고는 못 배긴다.", category: "FC" },
+            { id: 39, text: "자신의 생각을 관철하기보다 타협하는 경우가 많다.", category: "AC" },
+            { id: 40, text: "동정심이나 배려심이 강하고 어린이나 타인을 돌보기를 좋아한다.", category: "NP" },
+            { id: 41, text: "어떤 결정을 내릴 때 사실을 확인하거나 반대 의견을 듣는다.", category: "A" },
+            { id: 42, text: "중얼중얼하는 목소리로 말하거나 우물쭈물 사양하는 편이다.", category: "AC" },
+            { id: 43, text: "상대를 바보 취급하거나 멸시한다.", category: "CP" },
+            { id: 44, text: "기쁨이나 화를 내는 등 희로애락을 직접적으로 표현한다.", category: "FC" },
+            { id: 45, text: "곤경에 처해 있는 사람을 위로하거나 복돋아 주기를 즐겨한다.", category: "NP" },
+            { id: 46, text: "현상을 잘 관찰, 분석하고 합리적으로 의사 결정한다.", category: "A" },
+            { id: 47, text: "'~해도 괜찮을까요?', '~할 생각입니다', '이젠 됐습니다' 등의 말을 쓴다.", category: "AC" },
+            { id: 48, text: "'와! 멋있다', '굉장하군!', '아하' 등 감탄사를 자주 쓰며 농담을 잘한다.", category: "FC" },
+            { id: 49, text: "'당연히 ~해야 한다', '~하지 않으면 안 된다', 식의 말투를 잘 쓴다.", category: "CP" },
+            { id: 50, text: "권리를 주장하기 전에 의무를 다한다.", category: "CP" }
+        ];
+
+        // 응답 옵션
+        const answerOptions = [
+            { score: 5, label: "매우 그렇다", labelMobile: "매우\n그렇다" },
+            { score: 4, label: "그렇다", labelMobile: "그렇다" },
+            { score: 3, label: "보통이다", labelMobile: "보통" },
+            { score: 2, label: "그렇지 않다", labelMobile: "그렇지\n않다" },
+            { score: 1, label: "전혀 그렇지 않다", labelMobile: "전혀\n아니다" }
+        ];
+
+        // 카테고리 정보
+        const categories = ['CP', 'NP', 'A', 'FC', 'AC'];
+
+        const categoryInfo = {
+            CP: {
+                name: "CP (비판적 부모)",
+                shortName: "CP",
+                fullName: "Critical Parent",
+                color: "#dc2626",
+                colorLight: "rgba(220, 38, 38, 0.1)",
+                badgeClass: "cp",
+                highLabel: "비판적 · 지배적",
+                lowLabel: "관용적",
+                description: "비판적 부모 자아상태로, 규범·도덕·질서를 중시하고 엄격한 기준을 적용하는 성향입니다.",
+                highTraits: [
+                    "책임감이 강하고 원칙을 중시한다",
+                    "규칙과 질서를 강조하고 준수한다",
+                    "타인의 잘못을 지적하고 바로잡으려 한다",
+                    "리더십이 강하고 결단력이 있다",
+                    "'~해야 한다'는 말을 자주 사용한다"
+                ],
+                lowTraits: [
+                    "타인에게 관대하고 허용적이다",
+                    "규범에 얽매이지 않는다",
+                    "자유로운 분위기를 선호한다"
+                ],
+                strengths: [
+                    "조직의 규율과 질서를 유지하는 데 기여",
+                    "책임감 있는 리더로서의 역할 수행",
+                    "도덕적 기준과 원칙을 세우는 능력"
+                ],
+                improvements: [
+                    "타인의 의견에 좀 더 귀를 기울이기",
+                    "비판보다 칭찬과 격려를 먼저 하기",
+                    "완벽주의적 기준을 조금 낮추어 보기",
+                    "상대의 입장에서 생각해 보기"
+                ]
+            },
+            NP: {
+                name: "NP (양육적 부모)",
+                shortName: "NP",
+                fullName: "Nurturing Parent",
+                color: "#f59e0b",
+                colorLight: "rgba(245, 158, 11, 0.1)",
+                badgeClass: "np",
+                highLabel: "과보호적 · 헌신적",
+                lowLabel: "방임적",
+                description: "양육적 부모 자아상태로, 타인을 돌보고 보호하며 공감하는 따뜻한 성향입니다.",
+                highTraits: [
+                    "타인을 잘 돌보고 배려심이 깊다",
+                    "칭찬을 잘하고 격려를 아끼지 않는다",
+                    "공감 능력이 뛰어나고 경청을 잘한다",
+                    "봉사정신이 강하고 헌신적이다",
+                    "따뜻하고 부드러운 대화 태도를 보인다"
+                ],
+                lowTraits: [
+                    "타인에 대한 관심이 적다",
+                    "감정 표현에 서투르다",
+                    "자기 일에만 집중하는 경향이 있다"
+                ],
+                strengths: [
+                    "팀 내 화합과 소속감 형성에 기여",
+                    "갈등 상황에서 중재자 역할 수행",
+                    "상대방의 마음을 여는 따뜻한 소통 능력"
+                ],
+                improvements: [
+                    "과도한 돌봄이 상대의 자립을 방해하지 않는지 점검하기",
+                    "자기 자신을 돌보는 시간도 갖기",
+                    "거절이 필요한 상황에서 적절히 거절하기",
+                    "과보호가 되지 않도록 적절한 거리 유지하기"
+                ]
+            },
+            A: {
+                name: "A (성인)",
+                shortName: "A",
+                fullName: "Adult",
+                color: "#10b981",
+                colorLight: "rgba(16, 185, 129, 0.1)",
+                badgeClass: "a-type",
+                highLabel: "기계적 · 현실적",
+                lowLabel: "즉흥적",
+                description: "성인 자아상태로, 객관적 사실에 근거하여 논리적이고 합리적으로 판단하는 성향입니다.",
+                highTraits: [
+                    "논리적이고 합리적으로 판단한다",
+                    "감정에 휘둘리지 않고 냉정하게 분석한다",
+                    "사실에 근거하여 의사결정을 한다",
+                    "계획적이고 능률적으로 일을 처리한다",
+                    "침착하고 안정된 분위기를 만든다"
+                ],
+                lowTraits: [
+                    "즉흥적이고 감정에 따라 행동한다",
+                    "계획 없이 직감에 의존한다",
+                    "논리보다 감정을 우선시한다"
+                ],
+                strengths: [
+                    "객관적이고 공정한 판단 능력",
+                    "문제 해결에 대한 체계적 접근",
+                    "데이터와 사실에 기반한 의사결정"
+                ],
+                improvements: [
+                    "감정적 공감 표현을 더 늘려보기",
+                    "때로는 직관과 감성도 존중하기",
+                    "인간적인 따뜻함을 함께 전달하기",
+                    "융통성을 발휘하여 상황에 맞게 대처하기"
+                ]
+            },
+            FC: {
+                name: "FC (자유로운 어린이)",
+                shortName: "FC",
+                fullName: "Free Child",
+                color: "#3b82f6",
+                colorLight: "rgba(59, 130, 246, 0.1)",
+                badgeClass: "fc",
+                highLabel: "개구쟁이 · 개방적",
+                lowLabel: "폐쇄적",
+                description: "자유로운 어린이 자아상태로, 감정을 자유롭게 표현하고 창의적이며 활기찬 성향입니다.",
+                highTraits: [
+                    "감정 표현이 자유롭고 솔직하다",
+                    "호기심이 강하고 창의적이다",
+                    "유머가 있고 밝은 분위기를 만든다",
+                    "자유분방하고 자연스러운 행동을 한다",
+                    "즐거움을 추구하고 놀기 좋아한다"
+                ],
+                lowTraits: [
+                    "감정 표현을 억제한다",
+                    "새로운 시도를 꺼린다",
+                    "경직되고 폐쇄적인 태도를 보인다"
+                ],
+                strengths: [
+                    "분위기를 밝고 활기차게 만드는 능력",
+                    "창의적 아이디어와 발상력",
+                    "진솔한 감정 교류를 통한 관계 형성"
+                ],
+                improvements: [
+                    "충동적 행동을 조절하는 연습하기",
+                    "상황에 맞는 적절한 행동 판단하기",
+                    "타인의 감정도 함께 고려하기",
+                    "책임감 있게 결과를 예측하고 행동하기"
+                ]
+            },
+            AC: {
+                name: "AC (순응적 어린이)",
+                shortName: "AC",
+                fullName: "Adapted Child",
+                color: "#8b5cf6",
+                colorLight: "rgba(139, 92, 246, 0.1)",
+                badgeClass: "ac",
+                highLabel: "자기비하 · 의존적",
+                lowLabel: "독단적",
+                description: "순응적 어린이 자아상태로, 타인의 기대에 맞추고 눈치를 보며 자기를 억제하는 성향입니다.",
+                highTraits: [
+                    "타인의 눈치를 많이 보고 맞추려 한다",
+                    "자기 의견을 잘 내세우지 못한다",
+                    "거절을 잘 못하고 순응적이다",
+                    "소극적이고 조심스러운 태도를 보인다",
+                    "열등감이나 자기비하적 생각을 하기 쉽다"
+                ],
+                lowTraits: [
+                    "자기주장이 강하고 독단적이다",
+                    "타인의 의견을 잘 수용하지 않는다",
+                    "자기 방식대로 하려는 경향이 강하다"
+                ],
+                strengths: [
+                    "조직 내 협조적이고 조화를 이루는 능력",
+                    "신중하고 세심한 배려",
+                    "갈등을 피하고 평화를 유지하는 능력"
+                ],
+                improvements: [
+                    "자기 의견을 적극적으로 표현하는 연습하기",
+                    "자기 자신의 가치를 인정하고 긍정하기",
+                    "필요할 때 '아니오'라고 말하는 연습하기",
+                    "자기 감정과 욕구를 솔직하게 인정하기"
+                ]
+            }
+        };
+
+        // 상태 관리
+        let answers = {};
+        let userInfo = { gender: '', age: '', consent: false };
+        let currentScores = {};
+        let highestCategories = [];
+        let selectedCategory = '';
+        let strategies = Array(3).fill('');
+        let strategyCount = 3;
+
+        // 페이지 전환
+        function goTo(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            if (pageId === 'pageResult2') renderTypeDetail();
+            if (pageId === 'pageResult3') renderStrategyPage();
+        }
+
+        function startTest() {
+            const gender = document.querySelector('input[name="u-gender"]:checked');
+            const age = document.getElementById('u-age').value;
+            const consent = document.getElementById('u-consent').checked;
+
+            if (!gender) { alert('성별을 선택해 주세요.'); return; }
+            if (!age) { alert('연령대를 선택해 주세요.'); return; }
+            if (!consent) { alert('개인정보 수집에 동의해 주세요.'); return; }
+
+            userInfo.gender = gender.value;
+            userInfo.age = age;
+            userInfo.consent = consent;
+
+            goTo('pageTest');
+            renderQuestions();
+            updateProgress();
+        }
+
+        // 문항 렌더링
+        function renderQuestions() {
+            const container = document.getElementById('questionList');
+            container.innerHTML = questions.map((q, index) => {
+                const selected = answers[index];
+                const isMobile = window.innerWidth <= 768;
+                return `
+                    <div class="question-item ${selected !== undefined ? 'answered' : ''}" id="q-${index}">
+                        <div class="question-header">
+                            <div class="question-number">${q.id}</div>
+                            <div class="question-text">${q.text}</div>
+                        </div>
+                        <div class="answer-options">
+                            ${answerOptions.map(option => {
+                                const displayLabel = isMobile ? option.labelMobile : option.label;
+                                return `
+                                <div class="answer-option ${selected === option.score ? 'selected' : ''}" 
+                                     onclick="selectAnswer(${index}, ${option.score})">
+                                    <div class="option-score">${option.score}점</div>
+                                    <div class="option-label">${displayLabel}</div>
+                                </div>
+                            `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectAnswer(questionIndex, score) {
+            answers[questionIndex] = score;
+            renderQuestions();
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const answeredCount = Object.keys(answers).length;
+            const total = questions.length;
+            const percentage = Math.round((answeredCount / total) * 100);
+
+            document.getElementById('progressPercentage').textContent = `${percentage}%`;
+            document.getElementById('progressBar').style.setProperty('--progress', `${percentage}%`);
+
+            const resultBtn = document.getElementById('resultBtn');
+            resultBtn.disabled = answeredCount === 0;
+        }
+
+        // 점수 계산
+        function calculateScores() {
+            const scores = { CP: 0, NP: 0, A: 0, FC: 0, AC: 0 };
+            questions.forEach((q, index) => {
+                const answer = answers[index];
+                if (answer !== undefined) {
+                    scores[q.category] += answer;
+                }
+            });
+            return scores;
+        }
+
+        function findHighestCategories(scores) {
+            const maxScore = Math.max(...categories.map(c => scores[c] || 0));
+            return categories.filter(c => scores[c] === maxScore);
+        }
+
+        // 결과 페이지 1
+        function showResults() {
+            currentScores = calculateScores();
+            highestCategories = findHighestCategories(currentScores);
+            selectedCategory = highestCategories[0];
+
+            goTo('pageResult1');
+
+            // 뱃지
+            const badgesEl = document.getElementById('typeBadges');
+            badgesEl.innerHTML = highestCategories.map(cat => {
+                const info = categoryInfo[cat];
+                return `<span class="type-badge ${info.badgeClass}">${info.name}</span>`;
+            }).join('');
+
+            // 점수 요약
+            const summaryEl = document.getElementById('scoreSummary');
+            summaryEl.innerHTML = categories.map(cat => {
+                const isHighest = highestCategories.includes(cat);
+                return `
+                    <div class="score-card ${isHighest ? 'highest' : ''}">
+                        <div class="axis-name">${categoryInfo[cat].shortName}</div>
+                        <div class="axis-score">${currentScores[cat]}점</div>
+                    </div>
+                `;
+            }).join('');
+
+            // 에고그램 차트
+            renderEgogramChart(currentScores);
+        }
+
+        // 에고그램 SVG 차트
+        function renderEgogramChart(scores) {
+            const chartEl = document.getElementById('egogramChart');
+            const maxScore = 50;
+            const minScore = 0;
+            const chartWidth = 600;
+            const chartHeight = 350;
+            const paddingTop = 40;
+            const paddingBottom = 80;
+            const paddingLeft = 50;
+            const paddingRight = 30;
+            const plotWidth = chartWidth - paddingLeft - paddingRight;
+            const plotHeight = chartHeight - paddingTop - paddingBottom;
+
+            const labels = ['CP', 'NP', 'A', 'FC', 'AC'];
+            const topLabels = ['비판적', '과보호적', '기계적', '개구쟁이', '자기비하'];
+            const topLabels2 = ['지배적', '헌신적', '현실적', '개방적', '의존적'];
+            const bottomLabels = ['관용적', '방임적', '즉흥적', '폐쇄적', '독단적'];
+            const colors = ['#dc2626', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
+
+            const points = labels.map((label, i) => {
+                const x = paddingLeft + (plotWidth / (labels.length - 1)) * i;
+                const score = scores[label] || 0;
+                const y = paddingTop + plotHeight - (score / maxScore) * plotHeight;
+                return { x, y, score, label, color: colors[i] };
+            });
+
+            const gridLines = [10, 20, 30, 40, 50];
+
+            let svg = `<svg class="egogram-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" xmlns="http://www.w3.org/2000/svg">`;
+
+            // 그리드 라인
+            gridLines.forEach(val => {
+                const y = paddingTop + plotHeight - (val / maxScore) * plotHeight;
+                svg += `<line x1="${paddingLeft}" y1="${y}" x2="${chartWidth - paddingRight}" y2="${y}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,4"/>`;
+                svg += `<text x="${paddingLeft - 10}" y="${y + 4}" text-anchor="end" font-size="12" fill="#94a3b8">${val}</text>`;
+            });
+
+            // 세로 라인
+            points.forEach(p => {
+                svg += `<line x1="${p.x}" y1="${paddingTop}" x2="${p.x}" y2="${paddingTop + plotHeight}" stroke="#f1f5f9" stroke-width="1"/>`;
+            });
+
+            // 영역 채우기
+            const areaPath = `M ${points[0].x} ${points[0].y} ` +
+                points.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ') +
+                ` L ${points[points.length - 1].x} ${paddingTop + plotHeight} L ${points[0].x} ${paddingTop + plotHeight} Z`;
+            svg += `<path d="${areaPath}" fill="url(#areaGradient)" opacity="0.3"/>`;
+
+            // 그라디언트 정의
+            svg += `<defs>
+                <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.4"/>
+                    <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.05"/>
+                </linearGradient>
+            </defs>`;
+
+            // 꺾은선
+            const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+            svg += `<path d="${linePath}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+            // 포인트 + 점수
+            points.forEach(p => {
+                svg += `<circle cx="${p.x}" cy="${p.y}" r="8" fill="${p.color}" stroke="white" stroke-width="3"/>`;
+                svg += `<text x="${p.x}" y="${p.y - 16}" text-anchor="middle" font-size="14" font-weight="800" fill="${p.color}">${p.score}</text>`;
+            });
+
+            // 하단 라벨
+            points.forEach((p, i) => {
+                const yBase = paddingTop + plotHeight + 18;
+                svg += `<text x="${p.x}" y="${yBase}" text-anchor="middle" font-size="11" fill="#94a3b8">${topLabels[i]}</text>`;
+                svg += `<text x="${p.x}" y="${yBase + 14}" text-anchor="middle" font-size="11" fill="#94a3b8">${topLabels2[i]}</text>`;
+                svg += `<text x="${p.x}" y="${yBase + 32}" text-anchor="middle" font-size="15" font-weight="800" fill="${p.color}">${p.label}</text>`;
+                svg += `<text x="${p.x}" y="${yBase + 48}" text-anchor="middle" font-size="11" fill="#94a3b8">${bottomLabels[i]}</text>`;
+            });
+
+            svg += '</svg>';
+            chartEl.innerHTML = svg;
+        }
+
+        function renderTypeDetail() {
+            const selectorEl = document.getElementById('typeSelector');
+            selectorEl.innerHTML = categories.map(cat => {
+                const info = categoryInfo[cat];
+                const isActive = selectedCategory === cat;
+                const isMyResult = highestCategories.includes(cat);
+                const myTag = isMyResult ? `<span class="my-result-tag">나의 결과</span>` : '';
+                const scoreTag = `<span class="btn-score">${currentScores[cat] || 0}점</span>`;
+                return `<button class="type-select-btn ${isActive ? 'active' : ''} ${isMyResult ? 'my-result' : ''}" onclick="selectType('${cat}')" style="${isActive ? '' : `color: ${info.color}; border-color: ${info.color};`}">${myTag}${info.shortName}${scoreTag}</button>`;
+            }).join('');
+
+            const info = categoryInfo[selectedCategory];
+            const isMyResult = highestCategories.includes(selectedCategory);
+            const myBadge = isMyResult ? `<span class="my-result-badge">★ 나의 자아상태</span>` : '';
+
+            const headerEl = document.getElementById('typeDetailHeader');
+            headerEl.innerHTML = `
+                ${myBadge}
+                <div class="type-detail-title" style="color: ${info.color};">${info.name}</div>
+                <div class="type-detail-subtitle">${info.fullName} — ${info.description}</div>
+            `;
+
+            const contentEl = document.getElementById('typeDetailContent');
+            contentEl.innerHTML = `
+                <div class="type-detail-card">
+                    <h3 style="color: ${info.color}; border-bottom-color: ${info.colorLight};">높을 때 특징 (${info.highLabel})</h3>
+                    <ul>
+                        ${info.highTraits.map(t => `<li>${t}</li>`).join('')}
+                    </ul>
+                    <h3 style="color: ${info.color}; border-bottom-color: ${info.colorLight}; margin-top: 1.5rem;">강점</h3>
+                    <ul>
+                        ${info.strengths.map(t => `<li>${t}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="type-detail-card">
+                    <h3 style="color: ${info.color}; border-bottom-color: ${info.colorLight};">낮을 때 특징 (${info.lowLabel})</h3>
+                    <ul>
+                        ${info.lowTraits.map(t => `<li>${t}</li>`).join('')}
+                    </ul>
+                    <h3 style="color: ${info.color}; border-bottom-color: ${info.colorLight}; margin-top: 1.5rem;">개선 포인트</h3>
+                    <ul>
+                        ${info.improvements.map(t => `<li>${t}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        function selectType(cat) {
+            selectedCategory = cat;
+            renderTypeDetail();
+        }
+
+        function renderStrategyPage() {
+            const container = document.getElementById('strategyList');
+            container.innerHTML = strategies.map((strategy, index) => `
+                <div class="strategy-item">
+                    <div class="strategy-number">전략 ${index + 1}</div>
+                    <input type="text" 
+                           class="strategy-input" 
+                           placeholder="실천할 수 있는 구체적인 전략을 입력하세요"
+                           value="${strategy}"
+                           onchange="updateStrategy(${index}, this.value)">
+                    ${index >= 3 ? `<button class="strategy-remove" onclick="removeStrategy(${index})">삭제</button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function updateStrategy(index, value) { strategies[index] = value; }
+
+        function addStrategy() {
+            strategyCount++;
+            strategies.push('');
+            renderStrategyPage();
+        }
+
+        function removeStrategy(index) {
+            if (strategyCount > 1) {
+                strategies.splice(index, 1);
+                strategyCount--;
+                renderStrategyPage();
+            }
+        }
+
+        function submitResults() {
+            goTo('pageResult4');
+            sendToGoogleSheet();
+        }
+
+        // 구글 시트 전송
+        const GOOGLE_SHEET_URL = '';
+
+        function sendToGoogleSheet() {
+            if (!GOOGLE_SHEET_URL) return;
+
+            const strategyText = strategies.filter(s => s.trim() !== '').join(' / ');
+            const data = {
+                gender: userInfo.gender,
+                age: userInfo.age,
+                CP: currentScores.CP || 0,
+                NP: currentScores.NP || 0,
+                A: currentScores.A || 0,
+                FC: currentScores.FC || 0,
+                AC: currentScores.AC || 0,
+                resultType: highestCategories.map(c => categoryInfo[c].name).join(', '),
+                strategy: strategyText
+            };
+
+            fetch(GOOGLE_SHEET_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(() => console.log('데이터가 구글 시트에 저장되었습니다.'))
+            .catch(error => console.error('저장 오류:', error));
+        }
+
+        // 초기화
+        function resetTest() {
+            answers = {};
+            strategies = Array(3).fill('');
+            strategyCount = 3;
+            currentScores = {};
+            highestCategories = [];
+            selectedCategory = '';
+            userInfo = { gender: '', age: '', consent: false };
+
+            const ageEl = document.getElementById('u-age');
+            const consentEl = document.getElementById('u-consent');
+            const genderEls = document.querySelectorAll('input[name="u-gender"]');
+
+            if (ageEl) ageEl.value = '';
+            if (consentEl) consentEl.checked = false;
+            genderEls.forEach(el => el.checked = false);
+
+            goTo('pageIntro');
+        }
+    </script>
+</body>
+</html>

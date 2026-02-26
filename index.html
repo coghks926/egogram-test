@@ -667,6 +667,7 @@
             margin-bottom: 1rem;
             position: relative;
             min-height: 28px;
+            padding-left: 2.25rem;
             padding-right: 2.25rem;
         }
 
@@ -731,20 +732,50 @@
         .type-badges {
             display: flex;
             justify-content: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 0.5rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .type-badge {
-            display: inline-block;
-            padding: 0.75rem 2rem;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.05rem;
+            white-space: nowrap;
+            flex: 0 0 auto;
+            text-align: center;
+            padding: 0.5rem 1.2rem;
             border-radius: 999px;
-            font-size: clamp(18px, 3.5vw, 24px);
+            font-size: 20px;
             font-weight: 800;
-            margin: 0.5rem;
+            margin: 0;
             color: white;
             box-shadow: var(--shadow-md);
+            line-height: 1.2;
+        }
+
+        .type-badge .badge-main {
+            font-size: 1em;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+        }
+
+        .type-badge .badge-sub {
+            font-size: 0.72em;
+            font-weight: 600;
+            opacity: 0.95;
+        }
+
+        @media (min-width: 769px) {
+            #pageResult1 .type-badge {
+                min-width: 190px;
+                padding-left: 1.35rem;
+                padding-right: 1.35rem;
+            }
         }
 
         .type-badge.cp { background: linear-gradient(135deg, #dc2626, #b91c1c); }
@@ -862,7 +893,7 @@
         #pageResult2 .result-header {
             margin-bottom: 1.5rem;
         }
-        #pageResult1 .type-badges { margin-bottom: 1.25rem; }
+        #pageResult1 .type-badges { margin-bottom: 0.8rem; }
         #pageResult1 .score-summary { margin-bottom: 1.25rem; }
         #pageResult1 .egogram-chart-container { margin-bottom: 1.5rem; }
         #pageResult2 .type-selector-wrapper { margin-bottom: 1.25rem; }
@@ -1049,6 +1080,8 @@
             .type-select-btn { padding: 0.5rem 0.25rem; font-size: 13px; }
             .my-result-tag { font-size: 10px; padding: 0.1rem 0.35rem; }
             .btn-score { font-size: 11px; }
+            .type-badges { gap: 0.35rem; margin-bottom: 0.7rem; }
+            .type-badge { padding: 0.45rem 1rem; font-size: 18px; }
 
             .type-detail-grid { grid-template-columns: 1fr; }
             .type-detail-card li { font-size: 16px; }
@@ -1139,6 +1172,8 @@
             .type-select-btn { padding: 0.4rem 0.15rem; font-size: 12px; }
             .my-result-tag { font-size: 9px; padding: 0.05rem 0.3rem; margin-bottom: 0.15rem; }
             .btn-score { font-size: 10px; }
+            .type-badges { gap: 0.3rem; margin-bottom: 0.6rem; }
+            .type-badge { padding: 0.4rem 0.85rem; font-size: 16px; }
 
             .type-detail-title { font-size: 24px; }
             .type-detail-subtitle { font-size: 14px; }
@@ -1209,6 +1244,8 @@
 
             .score-item .score-value { font-size: 17px; }
             .score-item .score-label { font-size: 10px; }
+            .type-badges { gap: 0.25rem; margin-bottom: 0.55rem; }
+            .type-badge { padding: 0.35rem 0.7rem; font-size: 14px; }
 
             .answer-option .option-score { font-size: 15px; }
             .answer-option .option-label { font-size: 10px; }
@@ -1803,7 +1840,8 @@
             const badgesEl = document.getElementById('typeBadges');
             badgesEl.innerHTML = highestCategories.map(cat => {
                 const info = categoryInfo[cat];
-                return `<span class="type-badge ${info.badgeClass}">${info.name}</span>`;
+                const parenLabel = info.name.replace(`${info.shortName} `, '');
+                return `<span class="type-badge ${info.badgeClass}"><span class="badge-main">${info.shortName}</span><span class="badge-sub">${parenLabel}</span></span>`;
             }).join('');
 
             // 점수 요약

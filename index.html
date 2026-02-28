@@ -1457,7 +1457,7 @@
 
                 <div class="actions-sticky">
                     <button class="btn btn-secondary" onclick="goTo('pageResult2')">← 이전</button>
-                    <button class="btn" onclick="submitResults()">제출하기 →</button>
+                    <button class="btn" onclick="submitResults()">다음 →</button>
                 </div>
             </div>
         </div>
@@ -2130,29 +2130,35 @@
         }
 
         // 구글 시트 전송
-        const GOOGLE_SHEET_URL = '';
+        const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwSnfQ5mLtWGTnEfmdbtlc2fLfUYLOZnBR8HFftCugkWrB3z-nr2AfEU-CS9xSTn20ilw/exec';
 
         function sendToGoogleSheet() {
             if (!GOOGLE_SHEET_URL) return;
 
-            const strategyText = strategies.filter(s => s.trim() !== '').join(' / ');
-            const data = {
-                gender: userInfo.gender,
-                age: userInfo.age,
-                CP: currentScores.CP || 0,
-                NP: currentScores.NP || 0,
-                A: currentScores.A || 0,
-                FC: currentScores.FC || 0,
-                AC: currentScores.AC || 0,
-                resultType: highestCategories.map(c => categoryInfo[c].name).join(', '),
-                strategy: strategyText
-            };
+            const strategyText = strategies
+                .map(s => (s || '').trim())
+                .filter(s => s !== '')
+                .map((s, i) => `${i + 1}. ${s}`)
+                .join('\n');
+            const params = new URLSearchParams({
+                testType: 'egogram',
+                gender: userInfo.gender || '',
+                age: userInfo.age || '',
+                CP: String(currentScores.CP || 0),
+                NP: String(currentScores.NP || 0),
+                A: String(currentScores.A || 0),
+                FC: String(currentScores.FC || 0),
+                AC: String(currentScores.AC || 0),
+                resultType: highestCategories.map(c => categoryInfo[c].name).join('\n'),
+                strategy: strategyText,
+                userAgent: navigator.userAgent || ''
+            });
 
             fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                keepalive: true,
+                body: params
             })
             .then(() => console.log('데이터가 구글 시트에 저장되었습니다.'))
             .catch(error => console.error('저장 오류:', error));
